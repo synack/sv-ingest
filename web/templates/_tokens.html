@@ -1,0 +1,50 @@
+<section id="tokens-section" class="card">
+  <h2>Platform Tokens</h2>
+
+  {% if saved %}
+  <p class="msg saved">✓ Token saved for <strong>{{ saved }}</strong>.</p>
+  {% elif cleared %}
+  <p class="msg cleared">Token cleared for <strong>{{ cleared }}</strong>.</p>
+  {% endif %}
+
+  {% for t in tokens %}
+  <div class="token-row">
+
+    <div class="token-meta">
+      <span class="platform-name">{{ t.platform | title }}</span>
+      <span class="platform-url">{{ t.url }}</span>
+    </div>
+
+    <div class="token-status">
+      <span class="token-value">
+        <span class="dot {% if t.is_set %}dot-green{% else %}dot-red{% endif %}"></span>
+        {{ t.masked }}
+      </span>
+      <span class="token-source">[{{ t.source }}]</span>
+    </div>
+
+    <div class="token-controls">
+      <form hx-post="/api/tokens/{{ t.platform }}"
+            hx-target="#tokens-section"
+            hx-swap="outerHTML"
+            style="display:flex; gap:6px; align-items:center;">
+        <input type="password" name="token"
+               placeholder="Paste Bearer token…"
+               autocomplete="off"
+               aria-label="Token for {{ t.platform }}">
+        <button type="submit" class="btn btn-sm">Save</button>
+      </form>
+      {% if t.is_set %}
+      <button class="btn btn-sm btn-danger"
+              hx-delete="/api/tokens/{{ t.platform }}"
+              hx-target="#tokens-section"
+              hx-swap="outerHTML"
+              hx-confirm="Clear the {{ t.platform }} token?">
+        Clear
+      </button>
+      {% endif %}
+    </div>
+
+  </div>
+  {% endfor %}
+</section>

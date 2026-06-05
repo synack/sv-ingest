@@ -1,0 +1,14 @@
+services:
+  scanner-ingest:
+    build: .
+    container_name: scanner-ingest
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data:/data          # tokens.json + processed_files.log (persisted)
+      - ./incoming:/incoming  # optional: drop files here for CLI/batch use
+    environment:
+      SYNACK_TOKEN_FILE: /data/tokens.json
+      # Uncomment to set a default org UID for all ingests:
+      # SYNACK_ORG_UID: your-org-uid-here
+    restart: unless-stopped

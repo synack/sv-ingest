@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Scanner Ingest — Synack</title>
+  <script src="https://unpkg.com/htmx.org@2.0.4/dist/htmx.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:          #f0f4f8;
+      --surface:     #ffffff;
+      --border:      #dde3ec;
+      --primary:     #1d4ed8;
+      --primary-h:   #1e40af;
+      --success:     #15803d;
+      --success-bg:  #dcfce7;
+      --danger:      #dc2626;
+      --danger-bg:   #fee2e2;
+      --warn-bg:     #fef9c3;
+      --text:        #1e293b;
+      --text-muted:  #64748b;
+      --radius:      8px;
+      --shadow:      0 1px 4px rgba(0,0,0,.08), 0 2px 12px rgba(0,0,0,.05);
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 14px;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    header {
+      background: #0f172a;
+      color: #f8fafc;
+      padding: 16px 32px;
+      display: flex;
+      align-items: baseline;
+      gap: 16px;
+    }
+    header h1 { font-size: 18px; font-weight: 600; letter-spacing: -.3px; }
+    header p  { font-size: 13px; color: #94a3b8; }
+
+    main {
+      max-width: 860px;
+      margin: 32px auto;
+      padding: 0 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 24px;
+    }
+    .card h2 {
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .6px;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+    }
+
+    /* ---- Token section ---- */
+    .token-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .token-row:last-child { border-bottom: none; }
+
+    .token-meta { flex: 0 0 140px; display: flex; flex-direction: column; gap: 2px; }
+    .platform-name { font-weight: 600; font-size: 13px; }
+    .platform-url  { font-size: 11px; color: var(--text-muted); font-family: monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px; }
+
+    .token-status { flex: 0 0 160px; display: flex; flex-direction: column; gap: 2px; }
+    .token-value  { font-family: monospace; font-size: 12px; white-space: nowrap; }
+    .token-source { font-size: 11px; color: var(--text-muted); }
+    .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; }
+    .dot-green { background: var(--success); }
+    .dot-red   { background: var(--danger); }
+
+    .token-controls { flex: 1; display: flex; align-items: center; gap: 8px; justify-content: flex-end; }
+    .token-controls input[type="password"] {
+      width: 200px;
+      padding: 5px 8px;
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      font-size: 13px;
+    }
+    .token-controls input[type="password"]:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px rgba(29,78,216,.15);
+    }
+
+    /* ---- Buttons ---- */
+    button, .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 6px 14px;
+      font-size: 13px;
+      font-weight: 500;
+      border-radius: 5px;
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: background .15s, border-color .15s;
+      white-space: nowrap;
+    }
+    .btn-primary {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+    }
+    .btn-primary:hover { background: var(--primary-h); border-color: var(--primary-h); }
+    .btn-sm {
+      padding: 4px 10px;
+      font-size: 12px;
+      background: #f1f5f9;
+      color: var(--text);
+      border-color: var(--border);
+    }
+    .btn-sm:hover { background: #e2e8f0; }
+    .btn-danger {
+      background: #fff;
+      color: var(--danger);
+      border-color: #fca5a5;
+    }
+    .btn-danger:hover { background: var(--danger-bg); }
+
+    /* ---- Form ---- */
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+    .form-group { display: flex; flex-direction: column; gap: 5px; }
+    .form-group.full { grid-column: 1 / -1; }
+    label { font-size: 12px; font-weight: 500; color: var(--text-muted); }
+    input[type="text"], input[type="file"], select {
+      padding: 7px 10px;
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      font-size: 13px;
+      background: #fff;
+      color: var(--text);
+      width: 100%;
+    }
+    input[type="text"]:focus, select:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px rgba(29,78,216,.15);
+    }
+    input[type="file"] { padding: 5px 8px; cursor: pointer; }
+
+    details.optional { margin-top: 10px; }
+    details.optional summary {
+      font-size: 12px;
+      color: var(--text-muted);
+      cursor: pointer;
+      user-select: none;
+      margin-bottom: 10px;
+    }
+    details.optional summary:hover { color: var(--text); }
+
+    .checkbox-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 6px;
+    }
+    .checkbox-row input[type="checkbox"] { width: auto; }
+    .checkbox-row label { font-size: 13px; color: var(--text); font-weight: normal; cursor: pointer; }
+
+    .form-actions { margin-top: 18px; display: flex; align-items: center; gap: 12px; }
+
+    /* ---- HTMX loading indicator ---- */
+    .htmx-indicator { display: none; }
+    .htmx-request .htmx-indicator { display: inline; }
+    .spinner {
+      display: inline-block;
+      width: 14px; height: 14px;
+      border: 2px solid rgba(255,255,255,.4);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ---- Results ---- */
+    .result-success { border-left: 4px solid var(--success); padding: 14px 16px; background: var(--success-bg); border-radius: 0 var(--radius) var(--radius) 0; }
+    .result-failure { border-left: 4px solid var(--danger);  padding: 14px 16px; background: var(--danger-bg);  border-radius: 0 var(--radius) var(--radius) 0; }
+    .result-error   { border-left: 4px solid #f59e0b;       padding: 14px 16px; background: var(--warn-bg);   border-radius: 0 var(--radius) var(--radius) 0; }
+
+    .result-title { font-weight: 600; font-size: 14px; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+    .badge { display: inline-block; padding: 2px 7px; font-size: 11px; font-weight: 600; border-radius: 3px; letter-spacing: .4px; }
+    .badge-dryrun { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+
+    .stats { display: flex; gap: 20px; margin: 10px 0; }
+    .stat  { display: flex; flex-direction: column; }
+    .stat span { font-size: 11px; color: var(--text-muted); }
+    .stat strong { font-size: 20px; font-weight: 700; }
+
+    .error-list { margin-top: 8px; }
+    .error-list li { font-size: 13px; color: var(--danger); font-family: monospace; }
+
+    .result-meta { margin-top: 10px; font-size: 11px; color: var(--text-muted); }
+
+    details.ids-detail summary { font-size: 12px; cursor: pointer; color: var(--text-muted); margin-top: 8px; }
+    details.ids-detail code { display: block; margin-top: 6px; font-size: 11px; background: #f8fafc; padding: 8px; border-radius: 4px; word-break: break-all; }
+
+    .msg { padding: 8px 12px; border-radius: 5px; font-size: 13px; margin-top: 8px; }
+    .msg.saved   { background: var(--success-bg); color: var(--success); }
+    .msg.cleared { background: #f1f5f9; color: var(--text-muted); }
+
+    .placeholder { color: var(--text-muted); font-size: 13px; text-align: center; padding: 24px 0; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Scanner Ingest</h1>
+    <p>Ingest vulnerability data into the Synack platform</p>
+  </header>
+
+  <main>
+
+    <!-- Token management — lazy-loaded and swapped by all token operations -->
+    <div id="tokens-section"
+         hx-get="/api/tokens"
+         hx-trigger="load"
+         hx-swap="outerHTML">
+      <div class="card"><p class="placeholder">Loading token status…</p></div>
+    </div>
+
+    <!-- Ingest form -->
+    <div class="card">
+      <h2>Ingest File</h2>
+      <form id="ingest-form" onsubmit="submitIngest(event)">
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="platform">Platform</label>
+            <select id="platform" name="platform">
+              {% for platform, url in platforms %}
+              <option value="{{ platform }}">{{ platform | title }} — {{ url }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="source_type">Source Type</label>
+            <select id="source_type" name="source_type">
+              {% for key in source_types %}
+              <option value="{{ key }}">{{ source_labels.get(key, key) }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="form-group full">
+            <label for="org_uid">Organization UID</label>
+            <div style="display:flex; gap:6px; align-items:center;">
+              <input type="text" id="org_uid" name="org_uid"
+                     placeholder="Auto-detected from token" style="flex:1;">
+              <button type="button" class="btn btn-sm" id="detect-btn" onclick="detectOrgUid()"
+                      style="white-space:nowrap;">
+                <span id="detect-spinner" style="display:none;" class="spinner"
+                      style="border-color:rgba(0,0,0,.2); border-top-color:#333;"></span>
+                Auto-detect
+              </button>
+              <span id="detect-msg" style="font-size:11px;"></span>
+            </div>
+            <span style="font-size:11px; color:var(--text-muted); margin-top:3px; display:block;">
+              Make sure you have selected the correct Organization in Org Switcher before using.
+            </span>
+          </div>
+
+          <div class="form-group full">
+            <label for="file">File (.csv / .xlsx / .json)</label>
+            <input type="file" id="file" name="file"
+                   accept=".csv,.xlsx,.xls,.json" required>
+          </div>
+        </div>
+
+        <details class="optional">
+          <summary>Optional fields ▾</summary>
+          <div class="form-grid" style="margin-top:4px;">
+            <div class="form-group">
+              <label for="source_override">Source ID override</label>
+              <input type="text" id="source_override" name="source_override"
+                     placeholder="e.g. my-scanner">
+            </div>
+            <div class="form-group">
+              <label for="listing_uid">Listing UID</label>
+              <input type="text" id="listing_uid" name="listing_uid">
+            </div>
+            <div class="form-group">
+              <label for="asset_uid">Asset UID</label>
+              <input type="text" id="asset_uid" name="asset_uid">
+            </div>
+            <div class="form-group full">
+              <label for="default_location">Default Location</label>
+              <input type="text" id="default_location" name="default_location"
+                     placeholder="e.g. https://app.example.com or 10.0.0.1">
+              <span style="font-size:11px; color:var(--text-muted); margin-top:3px; display:block;">
+                Fallback location for findings without a valid network address (e.g. SAST/SCA).
+                Accepts IP, <code>protocol://IP:port</code>, or URL.
+              </span>
+            </div>
+          </div>
+        </details>
+
+        <div class="checkbox-row" style="margin-top:14px;">
+          <input type="checkbox" id="dry_run" name="dry_run">
+          <label for="dry_run">Dry run — parse &amp; validate only, do not submit to Synack</label>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" id="ingest-btn" class="btn btn-primary">
+            <span id="submit-spinner" class="spinner" style="display:none;"></span>
+            <span id="ingest-btn-label">Ingest</span>
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Results (populated by HTMX) -->
+    <div class="card" id="results-card" style="display:none">
+      <h2>Results</h2>
+      <div id="results"></div>
+    </div>
+
+  </main>
+
+  <script>
+    async function submitIngest(e) {
+      e.preventDefault();
+      const form   = e.currentTarget;
+      const btn    = document.getElementById("ingest-btn");
+      const spinner = document.getElementById("submit-spinner");
+      const label  = document.getElementById("ingest-btn-label");
+
+      btn.disabled       = true;
+      spinner.style.display = "inline-block";
+      label.textContent  = "Parsing…";
+
+      let jobId;
+      try {
+        const resp = await fetch("/api/ingest", { method: "POST", body: new FormData(form) });
+        if (!resp.ok) { throw new Error(await resp.text()); }
+        jobId = (await resp.json()).job_id;
+      } catch (err) {
+        resetBtn(spinner, label, btn);
+        document.getElementById("results").innerHTML =
+          `<div class="result-error"><div class="result-title">⚠ Upload error</div><p style="font-family:monospace;font-size:13px;">${err.message}</p></div>`;
+        document.getElementById("results-card").style.display = "";
+        return;
+      }
+
+      const iv = setInterval(async () => {
+        try {
+          const p = await fetch(`/api/ingest/progress/${jobId}`).then(r => r.json());
+
+          if (p.phase === "submitting" && p.pct !== null) {
+            spinner.style.display = "none";
+            label.textContent = p.pct + "%";
+          }
+
+          if (p.phase === "done") {
+            clearInterval(iv);
+            const html = await fetch(`/api/ingest/result/${jobId}`).then(r => r.text());
+            document.getElementById("results").innerHTML = html;
+            document.getElementById("results-card").style.display = "";
+            resetBtn(spinner, label, btn);
+          }
+        } catch (_) {
+          clearInterval(iv);
+          resetBtn(spinner, label, btn);
+        }
+      }, 500);
+    }
+
+    function resetBtn(spinner, label, btn) {
+      spinner.style.display = "none";
+      label.textContent     = "Ingest";
+      btn.disabled          = false;
+    }
+
+    async function detectOrgUid() {
+      const platform = document.getElementById("platform").value;
+      const btn      = document.getElementById("detect-btn");
+      const spinner  = document.getElementById("detect-spinner");
+      const msg      = document.getElementById("detect-msg");
+      const input    = document.getElementById("org_uid");
+
+      btn.disabled      = true;
+      spinner.style.display = "inline-block";
+      msg.textContent   = "";
+
+      try {
+        const resp = await fetch(`/api/org-uid/${platform}`);
+        const text = await resp.text();
+        if (resp.ok) {
+          input.value     = text;
+          msg.textContent = "✓ Detected from assets API";
+          msg.style.color = "var(--success)";
+        } else {
+          msg.textContent = text;
+          msg.style.color = "var(--danger)";
+        }
+      } catch (err) {
+        msg.textContent = "Request failed: " + err;
+        msg.style.color = "var(--danger)";
+      } finally {
+        btn.disabled          = false;
+        spinner.style.display = "none";
+      }
+    }
+  </script>
+</body>
+</html>

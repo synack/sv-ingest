@@ -1,0 +1,60 @@
+synack:
+  # Platform: "commercial" → https://api.synack.com
+  #           "fedramp"    → https://api.synack.us
+  # Tokens are stored in the OS keychain — run: python cli.py token set --platform <platform>
+  # Env var fallbacks: SYNACK_TOKEN (commercial) or SYNACK_FEDRAMP_TOKEN (fedramp)
+  platform: "commercial"
+  organization_uid: ""  # or set SYNACK_ORG_UID env var
+  batch_size: 100       # vulnerabilities per API request
+  retry_attempts: 3
+
+sources:
+  tenable_sc:
+    source_id: "tenable-sc"
+    default_cvss_version: 3.1
+    # Optional: override detected column names
+    # column_map:
+    #   name: "Plugin Name"
+    #   cvss_score: "CVSS v3.0 Base Score"
+
+  cisa:
+    source_id: "cisa-hygiene"
+    default_cvss_version: 3.1
+
+  generic:
+    source_id: "custom-scanner"   # override with --source flag in CLI
+    # Map source file field names to the internal model
+    field_mapping:
+      name: "vulnerability_name"
+      location: "target_host"
+      cvss_score: "cvss_score"
+      cvss_version: "cvss_version"
+      severity: "severity"
+      description: "description"
+      solution: "solution"
+      cves: "cve_ids"          # CSV: comma-separated string; JSON: array
+      cwes: "cwe_ids"
+      first_found_at: "first_seen"
+      last_found_at: "last_seen"
+      asset_uid: "asset_uid"
+      listing_uid: "listing_uid"
+
+scheduler:
+  watch_dirs:
+    # Uncomment and fill in to enable directory watching
+    # - path: "./incoming/tenable"
+    #   source_type: "tenable_sc"
+    #   org_uid: "your-org-uid"
+    # - path: "./incoming/cisa"
+    #   source_type: "cisa"
+    #   org_uid: "your-org-uid"
+    # - path: "./incoming/custom"
+    #   source_type: "generic"
+    #   org_uid: "your-org-uid"
+  poll_interval_seconds: 60
+  processed_log: "./processed_files.log"
+  # Each watch_dir entry can specify its own platform:
+  # - path: "./incoming/fedramp"
+  #   source_type: "tenable_sc"
+  #   platform: "fedramp"
+  #   org_uid: "your-fedramp-org-uid"

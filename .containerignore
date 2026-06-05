@@ -1,0 +1,10 @@
+.git
+.env
+.env.*
+*.pyc
+__pycache__
+.pytest_cache
+data/
+incoming/
+processed_files.log
+*.log

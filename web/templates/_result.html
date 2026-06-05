@@ -1,0 +1,57 @@
+{% if error %}
+<div class="result-error">
+  <div class="result-title">⚠ Unexpected error</div>
+  <p style="font-family:monospace; font-size:13px;">{{ error }}</p>
+</div>
+
+{% elif result %}
+<div class="{% if result.success %}result-success{% else %}result-failure{% endif %}">
+
+  <div class="result-title">
+    {% if result.success %}✓{% else %}✗{% endif %}
+    {{ filename }}
+    {% if dry_run %}<span class="badge badge-dryrun">DRY RUN</span>{% endif %}
+  </div>
+
+  <div class="stats">
+    <div class="stat">
+      <span>Parsed</span>
+      <strong>{{ result.parsed }}</strong>
+    </div>
+    <div class="stat">
+      <span>Submitted</span>
+      <strong>{{ result.submitted if not dry_run else "—" }}</strong>
+    </div>
+    {% if result.skipped %}
+    <div class="stat">
+      <span>Skipped</span>
+      <strong>{{ result.skipped }}</strong>
+    </div>
+    {% endif %}
+    {% if result.created_ids %}
+    <div class="stat">
+      <span>Created</span>
+      <strong>{{ result.created_ids | length }}</strong>
+    </div>
+    {% endif %}
+  </div>
+
+  {% if result.errors %}
+  <ul class="error-list">
+    {% for err in result.errors %}<li>{{ err }}</li>{% endfor %}
+  </ul>
+  {% endif %}
+
+  {% if result.created_ids %}
+  <details class="ids-detail">
+    <summary>Created vulnerability IDs ({{ result.created_ids | length }})</summary>
+    <code>{{ result.created_ids | join(', ') }}</code>
+  </details>
+  {% endif %}
+
+  <div class="result-meta">
+    {{ platform | title }} · {{ platform_url }}
+  </div>
+
+</div>
+{% endif %}
