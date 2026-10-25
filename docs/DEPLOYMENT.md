@@ -15,8 +15,8 @@ persistent state.
 
 ```bash
 # Clone the repo
-git clone git@git.synack.com:RnD/Scanner_Ingest.git
-cd Scanner_Ingest
+git clone https://github.com/synack/sv-ingest.git
+cd sv-ingest
 
 # Set tokens (see Token Setup below)
 cp .env.example .env
